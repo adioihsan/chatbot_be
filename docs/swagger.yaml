@@ -1,0 +1,171 @@
+definitions:
+  model.AuthRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  model.ErrorValidationResponse:
+    properties:
+      code:
+        type: integer
+      errors:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        type: string
+    type: object
+  model.GlobalResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  model.User:
+    type: object
+  model.UserMatrix:
+    properties:
+      id:
+        type: integer
+      isArchive:
+        type: boolean
+      isCreate:
+        type: boolean
+      isDelete:
+        type: boolean
+      isDownload:
+        type: boolean
+      isRead:
+        type: boolean
+      isUpdate:
+        type: boolean
+      isUpload:
+        type: boolean
+      user:
+        $ref: '#/definitions/model.User'
+      userID:
+        type: integer
+    required:
+    - isArchive
+    - isCreate
+    - isDelete
+    - isDownload
+    - isRead
+    - isUpdate
+    - isUpload
+    type: object
+info:
+  contact: {}
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate with email & password to obtain a JWT access token.
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: data contains token
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorValidationResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+      summary: Login
+      tags:
+      - auth
+  /users/:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user. Requires JWT and permission **C**.
+      parameters:
+      - description: User payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorValidationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+        "403":
+          description: Forbidden (requires permission C)
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+      security:
+      - BearerAuth: []
+      summary: Create user
+      tags:
+      - users
+  /users/matrix:
+    post:
+      consumes:
+      - application/json
+      description: Create a user permission/role matrix. Requires JWT and permission
+        **A**.
+      parameters:
+      - description: UserMatrix payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserMatrix'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorValidationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+        "403":
+          description: Forbidden (requires permission A)
+          schema:
+            $ref: '#/definitions/model.GlobalResponse'
+      security:
+      - BearerAuth: []
+      summary: Create user matrix
+      tags:
+      - users
+swagger: "2.0"
