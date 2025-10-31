@@ -63,7 +63,7 @@ func (h *BaseHandler) GetUserByID(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(model.GlobalResponse{
+	return c.Status(fiber.StatusOK).JSON(model.GlobalResponse{
 		Code:    fiber.StatusOK,
 		Message: "User retrieved successfully",
 		Data:    user,
@@ -93,7 +93,7 @@ func (h *BaseHandler) UpdateUser(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(model.GlobalResponse{
+	return c.Status(fiber.StatusOK).JSON(model.GlobalResponse{
 		Code:    fiber.StatusOK,
 		Message: "User updated successfully",
 		Data:    body,
@@ -120,15 +120,14 @@ func (h *BaseHandler) DeleteUser(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(model.GlobalResponse{
+	return c.Status(fiber.StatusOK).JSON(model.GlobalResponse{
 		Code:    fiber.StatusOK,
 		Message: "User deleted successfully",
 		Data:    nil,
 	})
 }
 
-//  Create user matrix
-
+// Create user matrix
 func (h *BaseHandler) CreateUserMatrix(c *fiber.Ctx) error {
 
 	body := c.Locals("validatedBody").(*model.UserMatrixRequest)
@@ -162,5 +161,29 @@ func (h *BaseHandler) CreateUserMatrix(c *fiber.Ctx) error {
 		Code:    fiber.StatusCreated,
 		Message: "User matrix created or updated successfully",
 		Data:    body,
+	})
+}
+
+// user short data
+func (h *BaseHandler) Me(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(int64)
+	userPID := c.Locals("user_pid").(string)
+	userEmail := c.Locals("email").(string)
+	userName := c.Locals("user_name").(string)
+
+	var userMe model.UserMe
+	userMe.Name = userName
+	userMe.PublicID = userPID
+	userMe.Email = userEmail
+
+	if userID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(model.GlobalResponse{
+			Code:    fiber.StatusUnauthorized,
+			Message: "You need to login"})
+	}
+	return c.Status(fiber.StatusOK).JSON(model.UserMeResponse{
+		Code:    fiber.StatusOK,
+		Message: "Authorized",
+		Data:    userMe,
 	})
 }

@@ -11,7 +11,7 @@ import (
 func (h *BaseHandler) ListMessage(c *fiber.Ctx) error {
 	pid, err := uuid.Parse(c.Params("conversation_pid"))
 	userId := c.Locals("user_id").(int64)
-	limitQ := c.Query("limit", "50")
+	limitQ := c.Query("limit", "10")
 	limit, err := strconv.Atoi(limitQ)
 
 	if err != nil {
@@ -24,14 +24,28 @@ func (h *BaseHandler) ListMessage(c *fiber.Ctx) error {
 			beforePID = &bid
 		}
 	}
+
 	msgs, err := h.Repo.ListMessageByConversationPID(c.Context(), userId, pid, limit, beforePID)
 
 	if err != nil {
-		return fiber.NewError(500, err.Error())
+		return c.Status(fiber.StatusNotFound).JSON(model.GlobalResponse{
+			Code:    fiber.StatusNotFound,
+			Message: "Cant find the conversation",
+		})
 	}
-	return c.JSON(model.MessageListRes{
-		Code:    200,
-		Message: "OK",
-		Data:    &msgs,
+	// get last pid
+	var lastPID *uuid.UUID
+	if len(msgs) > 0 && len(msgs) >= limit {
+		lastPID = &msgs[0].PublicID
+	} else {
+		lastPID = nil
+	}
+
+	return c.Status(fiber.StatusOK).JSON(model.MessageListRes{
+		Code:            200,
+		Message:         "OK",
+		ConversationPID: pid,
+		LastPID:         lastPID,
+		Data:            &msgs,
 	})
 }

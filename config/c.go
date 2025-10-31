@@ -78,6 +78,9 @@ func initGormPsql(l *logrus.Logger, env *model.EnvVar) *gorm.DB {
 		if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error; err != nil {
 			log.Fatalf("enable pgcrypto: %v", err)
 		}
+		if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS unaccent;`).Error; err != nil {
+			log.Fatalf("enable unaccent : %v", err)
+		}
 
 		l.Info("[v] Database GORM successful established\n")
 
@@ -115,8 +118,9 @@ func InitOpenAIService(l *logrus.Logger, env *model.EnvVar) *openai.Client {
 	// test connectivity
 	_, err := client.Models.List(context.Background())
 	if err != nil {
-		l.WithError(err).Fatal("failed to connect to OpenAI API")
+		l.WithError(err).Error("failed to connect to OpenAI API")
+	} else {
+		l.Infof("OpenAI connection is OK, base=%s", base)
 	}
-	l.Infof("OpenAI connection is OK, base=%s", base)
 	return &client
 }

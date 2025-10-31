@@ -3,7 +3,7 @@ package repository
 import (
 	"cms-octo-chat-api/model"
 
-	"cloud.google.com/go/pubsub"
+	pubsub "cloud.google.com/go/pubsub/v2"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

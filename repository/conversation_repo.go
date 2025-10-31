@@ -34,12 +34,19 @@ func (r *BaseRepository) GetConversationByPublicID(ctx context.Context, pid uuid
 	return &c, nil
 }
 
-func (r *BaseRepository) ListConversation(ctx context.Context, userID int64, limit int) ([]model.Conversation, error) {
+func (r *BaseRepository) ListConversation(ctx context.Context, userID int64, limit int, beforePublicID *uuid.UUID) ([]model.Conversation, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
 	var out []model.Conversation
 	q := r.DB.WithContext(ctx).Model(&model.Conversation{}).Where("user_id = ?", userID)
+
+	if beforePublicID != nil {
+		var before model.Conversation
+		if err := r.DB.WithContext(ctx).Select("created_at").First(&before, "public_id = ?", *beforePublicID).Error; err == nil {
+			q = q.Where("created_at < ?", before.CreatedAt)
+		}
+	}
 
 	if err := q.Order("updated_at DESC").Limit(limit).Find(&out).Error; err != nil {
 		return nil, err
@@ -54,7 +61,7 @@ func (r *BaseRepository) RenameConversation(ctx context.Context, pid uuid.UUID, 
 	return q.Updates(map[string]any{"title": title}).Error
 }
 
-func (r *BaseRepository) DeleteConversation(ctx context.Context, pid uuid.UUID, userID string) error {
+func (r *BaseRepository) DeleteConversation(ctx context.Context, pid uuid.UUID, userID int64) error {
 	q := r.DB.WithContext(ctx).Where("public_id = ?", pid)
 	q = q.Where("user_id = ?", userID)
 	return q.Delete(&model.Conversation{}).Error

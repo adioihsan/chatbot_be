@@ -25,10 +25,15 @@ func ApiRouter(resources model.Resources) *fiber.App {
 	})
 
 	f.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000",
-		AllowMethods: "GET,POST,OPTIONS",
-		AllowHeaders: "*",
+		AllowOrigins:     "http://localhost:3000",
+		AllowCredentials: true,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+
+	// f.Use(recover.New(recover.Config{
+	// 	EnableStackTrace: true,
+	// }))
 
 	m := middleware.NewBaseMiddleware(middleware.BaseMiddleware{
 		Env:  resources.Env,
@@ -65,6 +70,7 @@ func ApiRouter(resources model.Resources) *fiber.App {
 
 	// users
 	user := v1.Group("/user", m.JwtAuthMiddleware())
+	user.Get("/me", h.Me)
 	user.Post("/", m.PermissionChecker("C"), mBodyValidator.Validate(&model.UserCreateRequest{}), h.CreateUser)
 	user.Post("/:id/matrix", m.PermissionChecker("R"), mBodyValidator.Validate(&model.UserMatrixRequest{}), h.CreateUserMatrix)
 
@@ -72,6 +78,7 @@ func ApiRouter(resources model.Resources) *fiber.App {
 	conversation := v1.Group("/conversation", m.JwtAuthMiddleware())
 	conversation.Get("/", h.ListConversation)
 	conversation.Post("/", mBodyValidator.Validate(&model.ConversationCreateReq{}), h.CreateConversation)
+	conversation.Delete("/:pid", h.RemoveConversation)
 
 	//chat
 	chat := v1.Group("/chat", m.JwtAuthMiddleware())
@@ -81,6 +88,10 @@ func ApiRouter(resources model.Resources) *fiber.App {
 	// message
 	message := v1.Group("/message", m.JwtAuthMiddleware())
 	message.Get("/:conversation_pid", h.ListMessage)
+
+	// search
+	search := v1.Group("/search", m.JwtAuthMiddleware())
+	search.Get("/", h.GlobalSearch)
 
 	return f
 }

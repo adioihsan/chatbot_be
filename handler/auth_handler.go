@@ -3,6 +3,8 @@ package handler
 import (
 	"cms-octo-chat-api/helper"
 	"cms-octo-chat-api/model"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -10,6 +12,8 @@ import (
 // CreateUser - POST /users
 func (h *BaseHandler) Login(c *fiber.Ctx) error {
 	body := c.Locals("validatedBody").(*model.AuthRequest)
+	isSetTokenQ := c.Query("set-token", "false")
+	isSetToken, _ := strconv.ParseBool(isSetTokenQ)
 
 	user, err := h.Repo.GetUserByEmail(body.Email)
 
@@ -38,6 +42,17 @@ func (h *BaseHandler) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not generate token",
 		})
+	}
+
+	if isSetToken {
+		cookie := new(fiber.Cookie)
+		cookie.Name = "auth_token"
+		cookie.Value = token
+		cookie.Expires = time.Now().Add(time.Hour * 72)
+		cookie.HTTPOnly = true
+		cookie.Secure = true
+		cookie.SameSite = "Lax"
+		c.Cookie(cookie)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(model.AuthSuccessResponse{

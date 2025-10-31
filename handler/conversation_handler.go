@@ -13,12 +13,29 @@ func (h *BaseHandler) ListConversation(c *fiber.Ctx) error {
 	limitQ := c.Query("limit", "50")
 	limit, err := strconv.Atoi(limitQ)
 
-	conversations, err := h.Repo.ListConversation(c.Context(), userID, limit)
+	var beforePID *uuid.UUID
+	if a := c.Query("beforePid"); a != "" {
+		if bid, e := uuid.Parse(a); e == nil {
+			beforePID = &bid
+		}
+	}
+
+	conversations, err := h.Repo.ListConversation(c.Context(), userID, limit, beforePID)
 	if err != nil {
 		return fiber.NewError(500, err.Error())
 	}
-	return c.JSON(model.ConversationListRes{
+
+	// get last pid
+	var lastPID *uuid.UUID
+	if len(conversations) > 0 && len(conversations) >= limit {
+		lastPID = &conversations[len(conversations)-1].PublicID
+	} else {
+		lastPID = nil
+	}
+
+	return c.Status(fiber.StatusOK).JSON(model.ConversationListRes{
 		Code:    200,
+		LastPid: lastPID,
 		Message: "Conversation List",
 		Data:    conversations,
 	})
@@ -63,7 +80,7 @@ func (h *BaseHandler) RenameConversation(c *fiber.Ctx) error {
 	if err := h.Repo.RenameConversation(c.Context(), pid, userID, body.Title); err != nil {
 		return fiber.NewError(500, err.Error())
 	}
-	return c.JSON(model.GlobalResponse{
+	return c.Status(202).JSON(model.GlobalResponse{
 		Code:    202,
 		Message: "Conversation renamed successfully",
 	})
@@ -71,10 +88,11 @@ func (h *BaseHandler) RenameConversation(c *fiber.Ctx) error {
 
 func (h *BaseHandler) RemoveConversation(c *fiber.Ctx) error {
 	pid, err := uuid.Parse(c.Params("pid"))
+	userID := c.Locals("user_id").(int64)
 	if err != nil {
 		return fiber.NewError(400, "invalid id")
 	}
-	if err := h.Repo.DeleteConversation(c.Context(), pid, c.Get("user_id")); err != nil {
+	if err := h.Repo.DeleteConversation(c.Context(), pid, userID); err != nil {
 		return fiber.NewError(500, err.Error())
 	}
 	return c.SendStatus(204)

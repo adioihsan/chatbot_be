@@ -65,7 +65,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /login:
+  /v1/login:
     post:
       consumes:
       - application/json

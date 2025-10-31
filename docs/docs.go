@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/login": {
+        "/v1/login": {
             "post": {
                 "description": "Authenticate with email \u0026 password to obtain a JWT access token.",
                 "consumes": [

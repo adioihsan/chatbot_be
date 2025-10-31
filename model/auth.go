@@ -16,9 +16,10 @@ type AuthSuccessResponse struct {
 }
 
 type JWTClaims struct {
-	UserID               int64  `json:"UserID"`     // matches "UserID"
-	UserPID              string `json:"UserPID"`    // matches "UserPID" (UUID as string)
-	Email                string `json:"Email"`      // matches "Email"
+	UserID               int64  `json:"UserID"`  // matches "UserID"
+	UserPID              string `json:"UserPID"` // matches "UserPID" (UUID as string)
+	Email                string `json:"Email"`   // matches "Email"
+	Name                 string `json:"name"`
 	UserMatrix           any    `json:"UserMatrix"` // or a concrete type if you have one
 	jwt.RegisteredClaims        // covers iss, exp, iat, etc.
 }

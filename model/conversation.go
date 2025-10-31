@@ -31,6 +31,7 @@ type ConversationCreateRes struct {
 type ConversationListRes struct {
 	Code    int            `json:"code"`
 	Message string         `json:"message"`
+	LastPid *uuid.UUID     `json:"lastPid,omitempty"`
 	Data    []Conversation `json:"data"`
 }
 

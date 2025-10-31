@@ -15,28 +15,30 @@ import (
 func (m *BaseMiddleware) JwtAuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
-		if authHeader == "" {
+		cookieToken := c.Cookies("auth_token")
+
+		if authHeader == "" && cookieToken == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(model.GlobalResponse{
 				Code:    fiber.StatusUnauthorized,
-				Message: "Missing Authorization header",
-				Data:    nil,
+				Message: "Missing Authorization header or cookie",
 			})
 		}
 
-		// Expect format: Bearer token_here
-		tokenParts := strings.Split(authHeader, " ")
-		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
+		var tokenString string
+
+		switch {
+		case cookieToken != "":
+			tokenString = cookieToken
+		case strings.HasPrefix(strings.ToLower(authHeader), "bearer "):
+			tokenString = strings.TrimSpace(authHeader[7:])
+		default:
 			return c.Status(fiber.StatusUnauthorized).JSON(model.GlobalResponse{
 				Code:    fiber.StatusUnauthorized,
 				Message: "Invalid Authorization header format",
-				Data:    nil,
 			})
 		}
 
-		tokenString := tokenParts[1]
-
 		// Parse token
-
 		claims, err := helper.ValidateJWT(tokenString, m.Env.JWTSecret)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(model.GlobalResponse{
@@ -59,6 +61,7 @@ func (m *BaseMiddleware) JwtAuthMiddleware() fiber.Handler {
 		c.Locals("user_id", claims.UserID)
 		c.Locals("user_pid", claims.UserPID)
 		c.Locals("email", claims.Email)
+		c.Locals("user_name", claims.Name)
 		c.Locals("user_matrix", claims.UserMatrix)
 
 		return c.Next()

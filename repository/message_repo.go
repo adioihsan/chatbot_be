@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"cms-octo-chat-api/model"
 
@@ -39,5 +40,14 @@ func (r *BaseRepository) AppendMessage(ctx context.Context, m *model.Message) (*
 	if err := r.DB.WithContext(ctx).Create(m).Error; err != nil {
 		return nil, err
 	}
+
 	return m, nil
+}
+
+func (r *BaseRepository) RebuildMessageContentFTS(ctx context.Context, messageId int64) error {
+	baseExpr := `setweight(to_tsvector('pg_catalog.english', unaccent(coalesce(content,''))), 'B')`
+	sql := fmt.Sprintf("UPDATE messages SET content_vector = %s", baseExpr)
+	sql += fmt.Sprintf(" WHERE id = %d", messageId)
+
+	return r.DB.WithContext(ctx).Exec(sql).Error
 }

@@ -17,7 +17,6 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c := config.Initiate("api")
 
-		// Migrate tabled
 		c.DB.AutoMigrate(&model.User{}, &model.UserMatrix{}, &model.Conversation{}, &model.Message{})
 
 		router := app.ApiRouter(model.Resources{

@@ -24,3 +24,15 @@ type UserCreateRequest struct {
 	Email    string `json:"email" validate:"required,email" `
 	Password string `json:"password,omitempty" validate:"required,min=6"`
 }
+
+type UserMe struct {
+	PublicID string `json:"pid" `
+	Name     string `json:"username"`
+	Email    string `json:"email"`
+}
+
+type UserMeResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    UserMe `json:"data"`
+}

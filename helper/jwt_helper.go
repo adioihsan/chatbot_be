@@ -15,11 +15,12 @@ func GenerateJWT(user *model.User, jwtSecret string) (string, error) {
 		UserID:     user.ID,
 		UserPID:    user.PublicID.String(),
 		Email:      user.Email,
+		Name:       user.Name,
 		UserMatrix: user.UserMatrix,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)), // 3 day expiry
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "my-app",
+			Issuer:    "cms-chat",
 		},
 	}
 

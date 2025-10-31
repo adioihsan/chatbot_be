@@ -53,6 +53,7 @@ func (h *BaseHandler) SingleChat(c *fiber.Ctx) error {
 			RefID:          refId,
 		})
 		_ = h.Repo.TouchConversation(ctx, convo.ID)
+		_ = h.Repo.RebuildMessageContentFTS(ctx, nm.ID)
 
 		if prevMessageId == 0 {
 			prevMessageId = nm.ID
@@ -97,7 +98,9 @@ func (h *BaseHandler) SingleChat(c *fiber.Ctx) error {
 		RefID:          &prevMessageId,
 	})
 
-	return c.JSON(model.ChatResponse{
+	err = h.Repo.RebuildMessageContentFTS(ctx, message.ID)
+
+	return c.Status(fiber.StatusOK).JSON(model.ChatResponse{
 		Code:    fiber.StatusOK,
 		Message: "OK",
 		Data:    message,
