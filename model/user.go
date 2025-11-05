@@ -12,7 +12,8 @@ type User struct {
 	PublicID   uuid.UUID      `json:"id" gorm:"type:uuid;uniqueIndex;not null;default:gen_random_uuid()"`
 	Name       string         `json:"name"  gorm:"size:100;not null"`
 	Email      string         `json:"email"  gorm:"size:100;unique;not null"`
-	Password   string         `json:"password,omitempty"  gorm:"size:255;not null"`
+	Password   string         `json:"password,omitempty"  gorm:"size:255"`
+	HostOrigin string         `json:"host_origin" grom:"size:100"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`

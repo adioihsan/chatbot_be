@@ -62,3 +62,52 @@ func (h *BaseHandler) Login(c *fiber.Ctx) error {
 	})
 
 }
+
+func (h *BaseHandler) LoginWithToken(c *fiber.Ctx) error {
+	body := c.Locals("validatedBody").(*model.AuthWithTokenRequest)
+	isSetTokenQ := c.Query("set-token", "false")
+	isSetToken, _ := strconv.ParseBool(isSetTokenQ)
+
+	// skip token check for now. request is valid and secured as long as it from known host (temporary!, check later)
+
+	var new_user model.User
+	new_user.Name = body.Username
+	new_user.Email = body.Email
+	new_user.HostOrigin = c.Hostname()
+
+	user, err := h.Repo.FindOrCreateUser(new_user)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(model.GlobalResponse{
+			Code:    fiber.StatusInternalServerError,
+			Message: "Something went wrong",
+		})
+	}
+
+	token, err := helper.GenerateJWT(user, h.Env.JWTSecret)
+
+	if err != nil {
+		h.Logs.Error(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not generate token",
+		})
+	}
+
+	if isSetToken {
+		cookie := new(fiber.Cookie)
+		cookie.Name = "auth_token"
+		cookie.Value = token
+		cookie.Expires = time.Now().Add(time.Hour * 72)
+		cookie.HTTPOnly = true
+		cookie.Secure = true
+		cookie.SameSite = "Lax"
+		c.Cookie(cookie)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(model.AuthSuccessResponse{
+		Code:    fiber.StatusOK,
+		Message: "Login Success",
+		Token:   token,
+	})
+
+}

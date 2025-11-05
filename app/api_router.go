@@ -61,12 +61,19 @@ func ApiRouter(resources model.Resources) *fiber.App {
 					}),
 			}))
 
+	// swagger
 	f.Get("/swagger/*", swagger.HandlerDefault)
+
+	// testing
+	f.Get("/healthz", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
 
 	v1 := f.Group("/v1")
 
 	//Auth
 	v1.Post("/login", mBodyValidator.Validate(&model.AuthRequest{}), h.Login)
+	v1.Post("/login-with-token", mBodyValidator.Validate(&model.AuthWithTokenRequest{}), h.LoginWithToken)
 
 	// users
 	user := v1.Group("/user", m.JwtAuthMiddleware())

@@ -11,6 +11,14 @@ func (m *BaseRepository) CreateUser(user *model.User) error {
 	return m.DB.Create(user).Error
 }
 
+func (m *BaseRepository) FindOrCreateUser(user model.User) (*model.User, error) {
+	var new_user model.User
+	if err := m.DB.FirstOrCreate(&new_user, model.User{Name: user.Name, Email: user.Email, HostOrigin: user.HostOrigin}).Error; err != nil {
+		return nil, err
+	}
+	return &new_user, nil
+}
+
 func (m *BaseRepository) CeateUserWithMatrix(user model.User, matrix model.UserMatrix) error {
 	return m.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&user).Error; err != nil {

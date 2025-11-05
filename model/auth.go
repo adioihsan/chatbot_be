@@ -15,6 +15,12 @@ type AuthSuccessResponse struct {
 	Token   string `json:"token"`
 }
 
+type AuthWithTokenRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Username string `json:"username" validate:"required"`
+	Token    string `json:"token" validated:"required"`
+}
+
 type JWTClaims struct {
 	UserID               int64  `json:"UserID"`  // matches "UserID"
 	UserPID              string `json:"UserPID"` // matches "UserPID" (UUID as string)

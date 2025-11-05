@@ -3,7 +3,6 @@ package helper
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -47,16 +46,10 @@ func (mf *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func MakeLogger(s Setup) *logrus.Logger {
-	f, err := os.OpenFile(s.Logname, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
-	if err != nil {
-		panic(err.Error())
-	}
+
 	logger := logrus.New()
-	if s.Display {
-		logger.SetOutput(io.MultiWriter(os.Stdout, f))
-	} else {
-		logger.SetOutput(io.MultiWriter(f))
-	}
+	logrus.SetOutput(os.Stdout)
+
 	logger.SetReportCaller(true)
 
 	if s.Env == "Production" {
