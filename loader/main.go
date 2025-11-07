@@ -16,5 +16,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to load gorm schema: %v\n", err)
 		os.Exit(1)
 	}
+	// dd
 	io.WriteString(os.Stdout, stmts)
 }

@@ -1,24 +1,16 @@
+# Dockerfile.dev
+FROM golang:1.25-alpine
 
-FROM golang:1.24-alpine AS builder
-WORKDIR /src
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache bash git ca-certificates build-base curl && \
+    adduser -D -u 1000 vscode
 
-COPY go.mod go.sum ./
-RUN go mod download
+# Make sure Go is on PATH for all users
+ENV PATH="/usr/local/go/bin:/go/bin:${PATH}"
+ENV CGO_ENABLED=0 GOFLAGS=-mod=mod
 
-COPY . .
+# Air + Delve (Air moved to air-verse)
+RUN GOBIN=/usr/local/bin go install github.com/air-verse/air@latest && \
+    GOBIN=/usr/local/bin go install github.com/go-delve/delve/cmd/dlv@latest
 
-ENV CGO_ENABLED=0
-RUN go build -ldflags="-s -w" -o /out/app .
-
-FROM gcr.io/distroless/static:nonroot
-WORKDIR /app
-COPY --from=builder /out/app /app/app
-COPY validation_messages.yaml /app/validation_messages.yaml
-
-ENV PORT=7032
-EXPOSE 7032
-USER nonroot:nonroot
-ENTRYPOINT ["/app/app"]
-CMD ["server"]
-
+WORKDIR /work
+USER vscode

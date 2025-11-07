@@ -19,11 +19,13 @@ import (
 )
 
 func LoadEnv() *model.EnvVar {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
+	_ = godotenv.Load()
+
+	loc, err := time.LoadLocation(os.Getenv("TIME_ZONE"))
+	if err != nil || loc == nil {
+		loc = time.UTC
 	}
-	loc, _ := time.LoadLocation(os.Getenv("TIME_ZONE"))
+
 	env := &model.EnvVar{
 		AppApiHost:   os.Getenv("APP_API_HOST"),
 		AppApiPort:   os.Getenv("APP_API_PORT"),
@@ -31,11 +33,16 @@ func LoadEnv() *model.EnvVar {
 		LogPath:      os.Getenv("LOG_PATH"),
 		LogLevel:     os.Getenv("LOG_LEVEL"),
 		TimeZone:     loc,
+
+		// DB
+		PSQLUrl:      os.Getenv("PSQL_URL"),
 		PSQLHost:     os.Getenv("PSQL_HOST"),
 		PSQLUsername: os.Getenv("PSQL_USERNAME"),
 		PSQLPassword: os.Getenv("PSQL_PASSWORD"),
 		PSQLPort:     os.Getenv("PSQL_PORT"),
 		PSQLDB:       os.Getenv("PSQL_DB"),
+
+		// App/API
 		APIKey:       os.Getenv("API_KEY"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		OpenAiModel:  os.Getenv("OPENAI_MODEL"),
@@ -60,54 +67,76 @@ func Initiate(logname string) *model.Resources {
 }
 
 func initGormPsql(l *logrus.Logger, env *model.EnvVar) *gorm.DB {
+	// Prefer PSQL_URL when present
+	dsn := strings.TrimSpace(env.PSQLUrl)
 
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN:                  "host=" + env.PSQLHost + " user=" + env.PSQLUsername + " password=" + env.PSQLPassword + " dbname=" + env.PSQLDB + " port=" + env.PSQLPort + " sslmode=disable TimeZone=" + env.TimeZone.String(),
-		PreferSimpleProtocol: true,
-	}), &gorm.Config{})
+	if dsn == "" {
+		// Build DSN from individual parts
+		host := strings.TrimSpace(env.PSQLHost)
+		user := strings.TrimSpace(env.PSQLUsername)
+		pass := strings.TrimSpace(env.PSQLPassword)
+		port := strings.TrimSpace(env.PSQLPort)
+		db := strings.TrimSpace(env.PSQLDB)
 
-	if err != nil {
-
-		// panic the function then hard exit
-		l.Info(fmt.Sprintf("[x] An Error occured when establishing of the database : %#v\n", err))
-
-		panic(err)
-
-	} else {
-
-		if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error; err != nil {
-			log.Fatalf("enable pgcrypto: %v", err)
+		// Sensible defaults
+		if port == "" {
+			port = "5432"
 		}
-		if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS unaccent;`).Error; err != nil {
-			log.Fatalf("enable unaccent : %v", err)
+		sslmode := strings.TrimSpace(os.Getenv("PSQL_SSLMODE"))
+		if sslmode == "" {
+			// For local/dev commonly "disable"; override via PSQL_SSLMODE if needed
+			sslmode = "disable"
+		}
+		tz := "UTC"
+		if env.TimeZone != nil {
+			tz = env.TimeZone.String()
 		}
 
-		l.Info("[v] Database GORM successful established\n")
+		// Basic validation of required parts
+		if host == "" || user == "" || db == "" {
+			log.Fatal("database configuration incomplete: require PSQL_HOST, PSQL_USERNAME, and PSQL_DB when PSQL_URL is not set")
+		}
 
-		sqlDB, _ := db.DB()
-
-		// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
-		sqlDB.SetMaxIdleConns(10)
-
-		// SetMaxOpenConns sets the maximum number of open connections to the database.
-		sqlDB.SetMaxOpenConns(100)
-
-		// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-		sqlDB.SetConnMaxLifetime(time.Hour)
+		// Final DSN
+		dsn = fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+			host, user, pass, db, port, sslmode, tz,
+		)
 	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		l.Errorf("[x] Error establishing database connection: %v", err)
+		panic(err)
+	}
+
+	// Enable useful extensions (idempotent)
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error; err != nil {
+		log.Fatalf("enable pgcrypto: %v", err)
+	}
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS unaccent;`).Error; err != nil {
+		log.Fatalf("enable unaccent : %v", err)
+	}
+
+	l.Info("[v] Database GORM successfully established")
+
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	return db
 }
 
 func InitOpenAIService(l *logrus.Logger, env *model.EnvVar) *openai.Client {
-	key := env.OpenAiApiKey
+	key := strings.TrimSpace(env.OpenAiApiKey)
 	if key == "" {
 		l.Fatal("OPENAI_API_KEY is empty")
 	}
 
-	base := os.Getenv("OPENAI_BASE_URL")
-	if strings.TrimSpace(base) == "" {
-		base = "https://api.openai.com/v1" // default resmi
+	base := strings.TrimSpace(os.Getenv("OPENAI_BASE_URL"))
+	if base == "" {
+		base = "https://api.openai.com/v1"
 	}
 
 	client := openai.NewClient(
@@ -115,12 +144,11 @@ func InitOpenAIService(l *logrus.Logger, env *model.EnvVar) *openai.Client {
 		option.WithBaseURL(base),
 	)
 
-	// test connectivity
-	_, err := client.Models.List(context.Background())
-	if err != nil {
+	// Test connectivity (non-fatal if it fails)
+	if _, err := client.Models.List(context.Background()); err != nil {
 		l.WithError(err).Error("failed to connect to OpenAI API")
 	} else {
 		l.Infof("OpenAI connection is OK, base=%s", base)
 	}
-	return &client
+	return client
 }

@@ -1,0 +1,20 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# CHANGE THIS if your main is elsewhere:
+cmd = "/usr/local/go/bin/go build -o ./tmp/app ./cmd/server"
+bin = "tmp/app"
+full_bin = "./tmp/app server"
+
+include_ext = ["go","mod","sum","yaml"]
+exclude_dir = ["tmp","vendor",".git"]
+
+[log]
+time = true
+
+# (Optional) zero-downtime proxy:
+# [proxy]
+# enabled = true
+# proxy_port = 7032
+# app_port = 7033

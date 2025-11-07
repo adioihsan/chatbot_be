@@ -10,6 +10,7 @@ type (
 		LogPath      string
 		LogLevel     string
 		TimeZone     *time.Location
+		PSQLUrl		 string
 		PSQLHost     string
 		PSQLUsername string
 		PSQLPassword string

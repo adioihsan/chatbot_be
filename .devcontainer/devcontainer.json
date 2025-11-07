@@ -1,0 +1,21 @@
+{
+  "name": "Go Dev",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "cms-chatbot-be",
+  "workspaceFolder": "/work",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.go"],
+      "settings": {
+        "go.useLanguageServer": true,
+        "go.toolsEnvVars": {
+          "GOPATH": "/home/vscode/go",
+          "GOMODCACHE": "/home/vscode/go/pkg/mod",
+          "GOFLAGS": "-mod=mod -modcacherw"
+        },
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}

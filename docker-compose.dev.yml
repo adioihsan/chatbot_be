@@ -1,0 +1,23 @@
+services:
+  cms-chatbot-be:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cms-chatbot-be
+    env_file: .env
+    working_dir: /work
+    user: "1000:1000"
+    volumes:
+      - .:/work
+    environment:
+      - PORT=7032
+      - CGO_ENABLED=0
+      - GOPATH=/home/vscode/go
+      - GOMODCACHE=/home/vscode/go/pkg/mod
+      - GOFLAGS=-mod=mod -modcacherw
+    command: ["bash","-lc","./dev.sh"]
+    ports:
+      - "7032:7032"   # app
+      - "2345:2345"   # delve
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

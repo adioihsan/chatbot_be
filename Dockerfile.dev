@@ -1,0 +1,24 @@
+# Dev image with Go + tools; caches are writable by the non-root user
+FROM golang:1.25-alpine
+
+RUN apk add --no-cache bash git ca-certificates build-base curl && \
+    adduser -D -u 1000 vscode
+
+# Writable paths for the vscode user
+RUN mkdir -p /home/vscode/go && chown -R vscode:vscode /home/vscode
+
+# Environment
+ENV PATH="/usr/local/go/bin:/home/vscode/go/bin:${PATH}"
+ENV GOPATH=/home/vscode/go
+ENV GOMODCACHE=/home/vscode/go/pkg/mod
+ENV GOFLAGS="-mod=mod -modcacherw"
+ENV CGO_ENABLED=0
+
+# Preinstall dev tools into /usr/local/bin
+RUN GOBIN=/usr/local/bin go install github.com/air-verse/air@latest && \
+    GOBIN=/usr/local/bin go install github.com/go-delve/delve/cmd/dlv@latest && \
+    GOBIN=/usr/local/bin go install golang.org/x/tools/gopls@latest && \
+    GOBIN=/usr/local/bin go install honnef.co/go/tools/cmd/staticcheck@latest
+
+WORKDIR /work
+USER vscode
