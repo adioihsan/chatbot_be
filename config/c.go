@@ -27,12 +27,12 @@ func LoadEnv() *model.EnvVar {
 	}
 
 	env := &model.EnvVar{
-		AppApiHost:   os.Getenv("APP_API_HOST"),
-		AppApiPort:   os.Getenv("APP_API_PORT"),
-		LogEnv:       os.Getenv("LOG_ENV"),
-		LogPath:      os.Getenv("LOG_PATH"),
-		LogLevel:     os.Getenv("LOG_LEVEL"),
-		TimeZone:     loc,
+		AppApiHost: os.Getenv("APP_API_HOST"),
+		AppApiPort: os.Getenv("APP_API_PORT"),
+		LogEnv:     os.Getenv("LOG_ENV"),
+		LogPath:    os.Getenv("LOG_PATH"),
+		LogLevel:   os.Getenv("LOG_LEVEL"),
+		TimeZone:   loc,
 
 		// DB
 		PSQLUrl:      os.Getenv("PSQL_URL"),
@@ -150,5 +150,5 @@ func InitOpenAIService(l *logrus.Logger, env *model.EnvVar) *openai.Client {
 	} else {
 		l.Infof("OpenAI connection is OK, base=%s", base)
 	}
-	return client
+	return &client
 }
